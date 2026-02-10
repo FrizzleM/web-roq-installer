@@ -176,10 +176,6 @@ async function fetchLatestRoqApk(): Promise<File> {
     "X-GitHub-Api-Version": "2022-11-28",
   };
 
-  log(`[ROQ] latestUrl=${latestUrl}`);
-  log(`[ROQ] releasesUrl=${releasesUrl}`);
-  log(`[ROQ] headers=${JSON.stringify(githubHeaders)}`);
-
   const findApkAsset = (release: any) => {
     const assets = Array.isArray(release?.assets) ? release.assets : [];
     return assets.find((asset: any) =>
@@ -197,17 +193,11 @@ async function fetchLatestRoqApk(): Promise<File> {
   };
 
   let releaseData: any;
-
-  log("[ROQ] Requesting /releases/latest...");
   let response = await fetch(latestUrl, { headers: githubHeaders });
-  log(`[ROQ] /releases/latest status=${response.status} ok=${response.ok}`);
 
   if (!response.ok) {
-    log(`[ROQ] /releases/latest failed (${response.status}). Falling back to /releases...`);
-
+    log(`Latest release endpoint returned ${response.status}. Falling back to full release list…`);
     response = await fetch(releasesUrl, { headers: githubHeaders });
-    log(`[ROQ] /releases status=${response.status} ok=${response.ok}`);
-
     if (!response.ok) {
       throw new Error(`Could not fetch releases from GitHub (${response.status}).`);
     }
@@ -219,52 +209,28 @@ async function fetchLatestRoqApk(): Promise<File> {
       throw new Error("No releases found for rookie-on-quest.");
     }
 
-    log(`[ROQ] release count=${releases.length}`);
-
-    const candidateCount = releases.filter((release: any) => !release?.draft && !!findApkAsset(release)).length;
-    log(`[ROQ] releases with APK and not draft=${candidateCount}`);
-
     releaseData = pickBestReleaseWithApk(releases);
     if (!releaseData) {
       throw new Error("No release with an APK asset was found.");
     }
-
-    log(`[ROQ] selected fallback release tag=${releaseData?.tag_name ?? "(none)"} name=${releaseData?.name ?? "(none)"}`);
   } else {
     releaseData = await response.json();
-    log(`[ROQ] latest release tag=${releaseData?.tag_name ?? "(none)"} name=${releaseData?.name ?? "(none)"}`);
-
-    const latestAssets = Array.isArray(releaseData?.assets) ? releaseData.assets : [];
-    log(`[ROQ] latest release assets count=${latestAssets.length}`);
-
     if (!findApkAsset(releaseData)) {
-      log("[ROQ] latest release has no APK asset. Falling back to scan /releases...");
-
+      log("Latest release has no APK asset. Searching all releases…");
       const releasesResponse = await fetch(releasesUrl, { headers: githubHeaders });
-      log(`[ROQ] fallback /releases status=${releasesResponse.status} ok=${releasesResponse.ok}`);
-
       if (!releasesResponse.ok) {
         throw new Error(`Could not fetch releases from GitHub (${releasesResponse.status}).`);
       }
 
       const releases = await releasesResponse.json();
-      log(`[ROQ] fallback /releases payload type=${Array.isArray(releases) ? "array" : typeof releases}`);
-
       if (!Array.isArray(releases) || releases.length === 0) {
         throw new Error("No releases found for rookie-on-quest.");
       }
-
-      log(`[ROQ] fallback release count=${releases.length}`);
-
-      const candidateCount = releases.filter((release: any) => !release?.draft && !!findApkAsset(release)).length;
-      log(`[ROQ] fallback releases with APK and not draft=${candidateCount}`);
 
       releaseData = pickBestReleaseWithApk(releases);
       if (!releaseData) {
         throw new Error("No release with an APK asset was found.");
       }
-
-      log(`[ROQ] selected scanned release tag=${releaseData?.tag_name ?? "(none)"} name=${releaseData?.name ?? "(none)"}`);
     }
   }
 
