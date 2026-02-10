@@ -314,10 +314,6 @@ async function installApkFile(apkFile: File) {
       throw new Error("WebUSB needs a secure context. Open this installer over HTTPS or localhost.");
     }
 
-    if (!isSecureContextForWebUsb()) {
-      throw new Error("WebUSB needs a secure context. Open this installer over HTTPS or localhost.");
-    }
-
     const dev = await requestDevice();
     if (!dev) {
       log("User cancelled device picker.");
