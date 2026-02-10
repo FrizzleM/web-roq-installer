@@ -166,7 +166,7 @@ function makePercentLogger(prefix: string) {
 }
 
 async function fetchLatestRoqApk(): Promise<File> {
-  log("Checking latest Rookie-on-Quest release from GitHub…");
+  log("[ROQ] Step 2: Starting GitHub release lookup.");
 
   const latestUrl = `https://api.github.com/repos/${GITHUB_OWNER}/${GITHUB_REPO}/releases/latest`;
   const releasesUrl = `https://api.github.com/repos/${GITHUB_OWNER}/${GITHUB_REPO}/releases`;
@@ -203,6 +203,8 @@ async function fetchLatestRoqApk(): Promise<File> {
     }
 
     const releases = await response.json();
+    log(`[ROQ] /releases payload type=${Array.isArray(releases) ? "array" : typeof releases}`);
+
     if (!Array.isArray(releases) || releases.length === 0) {
       throw new Error("No releases found for rookie-on-quest.");
     }
@@ -239,16 +241,27 @@ async function fetchLatestRoqApk(): Promise<File> {
     throw new Error("Latest release does not contain an APK asset.");
   }
 
-  log(`Latest release: ${releaseName}`);
-  log(`Downloading ${apkAsset.name}…`);
+  log(`[ROQ] using release: ${releaseName}`);
+  log(`[ROQ] selected APK asset: ${apkAsset.name}`);
+  log(`[ROQ] APK URL: ${apkAsset.browser_download_url}`);
+  log("[ROQ] Downloading APK binary...");
 
   const apkResponse = await fetch(apkAsset.browser_download_url);
+  log(`[ROQ] APK download status=${apkResponse.status} ok=${apkResponse.ok}`);
+
   if (!apkResponse.ok) {
     throw new Error(`Could not download APK asset (${apkResponse.status}).`);
   }
 
+  const contentLength = apkResponse.headers.get("content-length");
+  const contentType = apkResponse.headers.get("content-type");
+  log(`[ROQ] APK response headers content-length=${contentLength ?? "(none)"} content-type=${contentType ?? "(none)"}`);
+
   const blob = await apkResponse.blob();
+  log(`[ROQ] APK blob size=${blob.size} type=${blob.type || "(none)"}`);
+
   const type = blob.type || "application/vnd.android.package-archive";
+  log("[ROQ] APK file object created.");
   return new File([blob], apkAsset.name, { type });
 }
 
@@ -322,11 +335,22 @@ async function installApkFile(apkFile: File) {
 };
 
 (document.getElementById("install") as HTMLButtonElement).onclick = async () => {
+  log("[ROQ] Install button clicked.");
+
   try {
+    log("[ROQ] Verifying ADB connection before install...");
     ensureConnected();
+    log("[ROQ] Connection check passed.");
+
+    log("[ROQ] Fetching latest ROQ APK...");
     const apk = await fetchLatestRoqApk();
+    log(`[ROQ] fetchLatestRoqApk completed. name=${apk.name} size=${apk.size}`);
+
+    log("[ROQ] Starting APK install flow (push + pm install)...");
     await installApkFile(apk);
+    log("[ROQ] Install flow completed.");
   } catch (e) {
+    log("[ROQ] Install flow failed.");
     logErr(e);
   }
 };
