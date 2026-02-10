@@ -1,0 +1,27 @@
+{
+  "name": "quest-web-installer",
+  "version": "1.0.0",
+  "description": "Web-based Meta Quest APK & OBB installer using WebUSB",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview"
+  },
+  "keywords": [
+    "meta-quest",
+    "webusb",
+    "adb",
+    "sideload",
+    "vr"
+  ],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "@yume-chan/adb": "^2.5.1",
+    "@yume-chan/adb-credential-web": "^2.1.0",
+    "@yume-chan/adb-daemon-webusb": "^2.3.2",
+    "typescript": "^5.9.3",
+    "vite": "^7.3.1"
+  }
+}

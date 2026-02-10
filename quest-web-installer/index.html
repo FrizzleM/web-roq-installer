@@ -1,0 +1,207 @@
+
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>QuestLoader</title>
+
+  <style>
+    :root{
+      --bg:#000;
+      --surface:#050505;
+      --border:#fff;
+      --text:#fff;
+      --muted:rgba(255,255,255,.75);
+      --radius:0;
+    }
+    *{box-sizing:border-box}
+    body{
+      margin:0; min-height:100vh;
+      background:var(--bg);
+      color:var(--text);
+      font-family:system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial;
+      display:flex; justify-content:center;
+      padding:24px 16px;
+    }
+    .wrap{width:min(980px,100%)}
+    h1{margin:0 0 8px;font-size:28px;font-weight:600;letter-spacing:.03em}
+    .sub{color:var(--muted);font-size:14px;margin-bottom:16px;line-height:1.35}
+
+    .card{
+      background:var(--surface);
+      border:1px solid var(--border);
+      border-radius:var(--radius);
+      overflow:hidden;
+    }
+    .section{padding:16px;border-bottom:1px solid var(--border)}
+    .section:last-child{border-bottom:none}
+    .title{font-size:15px;font-weight:700;margin-bottom:0}
+    .actions{display:flex;gap:10px;flex-wrap:wrap;margin-top:8px}
+    button{
+      appearance:none;
+      border-radius:0;
+      padding:10px 14px;
+      border:1px solid var(--border);
+      background:transparent;
+      color:var(--text);
+      font-weight:600;
+      cursor:pointer;
+      transition:background .15s;
+    }
+    button:hover{background:rgba(255,255,255,.12)}
+
+    .grid{
+      display:grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+      margin-top: 8px;
+    }
+    @media (max-width: 820px){
+      .grid{ grid-template-columns: 1fr; }
+    }
+
+    .picker{
+      border:1px solid var(--border);
+      background:transparent;
+      border-radius:0;
+      padding:14px;
+      display:flex;
+      justify-content:space-between;
+      align-items:center;
+      cursor:pointer;
+      gap: 10px;
+    }
+    .picker strong{display:block;font-size:13px}
+    .picker span{display:block;font-size:12px;color:var(--muted);margin-top:4px;max-width: 68ch}
+    .tag{
+      font-size: 11px;
+      padding: 4px 8px;
+      border-radius: 0;
+      border: 1px solid var(--border);
+      background: transparent;
+      color: var(--text);
+      white-space: nowrap;
+    }
+
+    pre{
+      margin:0;
+      padding:14px;
+      border-top:1px solid var(--border);
+      background:transparent;
+      color:var(--text);
+      font-size:12.5px;
+      max-height:320px;
+      overflow:auto;
+      line-height: 1.45;
+    }
+    details summary{
+      padding:12px 16px;
+      cursor:pointer;
+      color:var(--text);
+      user-select:none;
+    }
+  </style>
+</head>
+
+<body>
+  <div class="wrap">
+    <h1>QuestLoad</h1>
+    <div class="sub">
+      Install any app on your meta quest, quest 2, quest 3 and quest pro. Developer mode is required.
+    </div>
+
+    <div class="card">
+
+      <div class="section">
+        <div class="title">1. Connect your Quest</div>
+        <div class="actions">
+          <button id="connect" type="button">Connect Quest</button>
+          <button id="disconnect" type="button">Disconnect</button>
+        </div>
+      </div>
+
+      <div class="section">
+        <div class="title">2. Choose what to install</div>
+        <div class="grid">
+          <div class="picker" id="apkPick" role="button" tabindex="0">
+            <div id="apkLabel">
+              <strong>Choose an .apk (or drop it here)</strong>
+              <span>Must be an .apk, not a folder</span>
+            </div>
+            <div class="tag">APK</div>
+            <input type="file" id="apk" accept=".apk" style="display:none">
+          </div>
+
+          <div class="picker" id="bundlePick" role="button" tabindex="0">
+            <div id="bundleLabel">
+              <strong>Choose a game bundle folder (BETA)</strong>
+              <span>Must contain: release.manifest + APK + OBB (main.*.obb).</span>
+            </div>
+            <div class="tag">FOLDER</div>
+            <input type="file" id="bundle" webkitdirectory multiple style="display:none">
+          </div>
+        </div>
+      </div>
+
+      <div class="section">
+        <div class="title">3. Install</div>
+        <div class="actions">
+          <button id="install" type="button">Install APK</button>
+          <button id="installBundle" type="button">Install Bundle (APK + OBB)</button>
+        </div>
+      </div>
+
+      <details open>
+        <summary>Logs</summary>
+        <pre id="log"></pre>
+      </details>
+
+    </div>
+
+    <script type="module" src="/src/main.ts"></script>
+
+    <script>
+      const apkPick = document.getElementById('apkPick');
+      const apkInput = document.getElementById('apk');
+      const apkLabel = document.getElementById('apkLabel');
+
+      apkPick.addEventListener('click', () => apkInput.click());
+      apkPick.addEventListener('keydown', (e) => { if (e.key === 'Enter' || e.key === ' ') apkInput.click(); });
+
+      apkInput.addEventListener('change', () => {
+        const f = apkInput.files && apkInput.files[0];
+        if (f) apkLabel.querySelector('strong').textContent = `Selected: ${f.name}`;
+      });
+
+      const hl = (on) => {
+        apkPick.style.background = on ? 'rgba(255,255,255,.12)' : 'transparent';
+      };
+      ['dragenter','dragover'].forEach(evt => apkPick.addEventListener(evt, (e)=>{ e.preventDefault(); hl(true); }));
+      ['dragleave','drop'].forEach(evt => apkPick.addEventListener(evt, (e)=>{ e.preventDefault(); hl(false); }));
+
+      apkPick.addEventListener('drop', (e) => {
+        const f = e.dataTransfer.files && e.dataTransfer.files[0];
+        if (!f) return;
+        if (!f.name.toLowerCase().endsWith('.apk')) return alert('Drop an .apk file');
+        const dt = new DataTransfer();
+        dt.items.add(f);
+        apkInput.files = dt.files;
+        apkInput.dispatchEvent(new Event('change', { bubbles: true }));
+      });
+
+      const bundlePick = document.getElementById('bundlePick');
+      const bundleInput = document.getElementById('bundle');
+      const bundleLabel = document.getElementById('bundleLabel');
+
+      bundlePick.addEventListener('click', () => bundleInput.click());
+      bundlePick.addEventListener('keydown', (e) => { if (e.key === 'Enter' || e.key === ' ') bundleInput.click(); });
+
+      bundleInput.addEventListener('change', () => {
+        const files = bundleInput.files ? bundleInput.files.length : 0;
+        if (files > 0) bundleLabel.querySelector('strong').textContent = `Selected folder (${files} files)`;
+      });
+    </script>
+  </div>
+</body>
+</html>
