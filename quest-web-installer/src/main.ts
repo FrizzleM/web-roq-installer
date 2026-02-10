@@ -314,6 +314,10 @@ async function installApkFile(apkFile: File) {
       throw new Error("WebUSB needs a secure context. Open this installer over HTTPS or localhost.");
     }
 
+    if (!isSecureContextForWebUsb()) {
+      throw new Error("WebUSB needs a secure context. Open this installer over HTTPS or localhost.");
+    }
+
     const dev = await requestDevice();
     if (!dev) {
       log("User cancelled device picker.");
@@ -333,13 +337,11 @@ async function installApkFile(apkFile: File) {
     const model = (await shell(["getprop", "ro.product.model"])).trim();
     const manufacturer = (await shell(["getprop", "ro.product.manufacturer"])).trim();
     log(`✅ Connected to ${manufacturer || "Unknown"} ${model || ""}`);
-    await logWebUsbDebug("connected");
   } catch (e: any) {
     if (e instanceof DOMException && e.name === "SecurityError") {
       log("❌ Browser blocked the USB picker.");
       log("   - Open the installer directly (not inside an iframe).\n   - Use HTTPS or localhost.\n   - Ensure no extension is blocking popups/USB prompts.");
     }
-    await logWebUsbDebug("connect error");
     logErr(e);
   } finally {
     connectButton.disabled = false;
