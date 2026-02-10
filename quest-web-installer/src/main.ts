@@ -141,68 +141,6 @@ function logErr(e: any) {
   console.error(e);
   log(`❌ ${e?.message ?? String(e)}`);
   if (e?.name) log(`   name: ${e.name}`);
-  if (e?.stack) log(`   stack: ${String(e.stack).split("\n")[0]}`);
-}
-
-async function collectWebUsbDebugInfo() {
-  const details: Record<string, string | number | boolean> = {
-    time: new Date().toISOString(),
-    href: window.location.href,
-    origin: window.location.origin,
-    protocol: window.location.protocol,
-    host: window.location.host,
-    secureContext: window.isSecureContext,
-    hasNavigatorUsb: "usb" in navigator,
-    topLevelFrame: window.top === window.self,
-    visibilityState: document.visibilityState,
-    documentHasFocus: document.hasFocus(),
-    userAgent: navigator.userAgent,
-    platform: navigator.platform,
-  };
-
-  if ("usb" in navigator && navigator.usb?.getDevices) {
-    try {
-      const previouslyGrantedDevices = await navigator.usb.getDevices();
-      details.previouslyGrantedUsbDevices = previouslyGrantedDevices.length;
-    } catch (e: any) {
-      details.previouslyGrantedUsbDevicesError = `${e?.name ?? "Error"}: ${e?.message ?? String(e)}`;
-    }
-  }
-
-  return details;
-}
-
-function logDebugHeader(stage: string) {
-  log("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
-  log(`🛠️ DEBUG (${stage})`);
-}
-
-async function logWebUsbDebug(stage: string) {
-  logDebugHeader(stage);
-  const info = await collectWebUsbDebugInfo();
-  for (const [key, value] of Object.entries(info)) {
-    log(`   ${key}: ${value}`);
-  }
-}
-
-window.addEventListener("error", (event) => {
-  log(`❌ window error: ${event.message}`);
-});
-
-window.addEventListener("unhandledrejection", (event) => {
-  log(`❌ unhandled rejection: ${String(event.reason)}`);
-});
-
-if (navigator.usb) {
-  navigator.usb.addEventListener("connect", (event: Event) => {
-    const device = (event as USBConnectionEvent).device;
-    log(`ℹ️ USB connect event: ${device.productName ?? "Unknown device"}`);
-  });
-
-  navigator.usb.addEventListener("disconnect", (event: Event) => {
-    const device = (event as USBConnectionEvent).device;
-    log(`ℹ️ USB disconnect event: ${device.productName ?? "Unknown device"}`);
-  });
 }
 
 let connected = false;
@@ -308,11 +246,6 @@ async function installApkFile(apkFile: File) {
   try {
     connectButton.disabled = true;
     log("Connect clicked.");
-    await logWebUsbDebug("before requestDevice");
-
-    if (!isSecureContextForWebUsb()) {
-      throw new Error("WebUSB needs a secure context. Open this installer over HTTPS or localhost.");
-    }
 
     if (!isSecureContextForWebUsb()) {
       throw new Error("WebUSB needs a secure context. Open this installer over HTTPS or localhost.");
@@ -321,7 +254,6 @@ async function installApkFile(apkFile: File) {
     const dev = await requestDevice();
     if (!dev) {
       log("User cancelled device picker.");
-      await logWebUsbDebug("picker cancelled");
       return;
     }
 
