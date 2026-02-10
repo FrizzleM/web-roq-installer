@@ -171,12 +171,33 @@ async function fetchLatestRoqApk(): Promise<File> {
   const latestUrl = `https://api.github.com/repos/${GITHUB_OWNER}/${GITHUB_REPO}/releases/latest`;
   const releasesUrl = `https://api.github.com/repos/${GITHUB_OWNER}/${GITHUB_REPO}/releases`;
 
+  const githubHeaders = {
+    Accept: "application/vnd.github+json",
+    "X-GitHub-Api-Version": "2022-11-28",
+  };
+
+  const findApkAsset = (release: any) => {
+    const assets = Array.isArray(release?.assets) ? release.assets : [];
+    return assets.find((asset: any) =>
+      typeof asset?.name === "string"
+      && asset.name.toLowerCase().endsWith(".apk")
+      && typeof asset?.browser_download_url === "string"
+    );
+  };
+
+  const pickBestReleaseWithApk = (releases: any[]) => {
+    const candidates = releases.filter((release) => !release?.draft && !!findApkAsset(release));
+
+    const stable = candidates.find((release) => !release?.prerelease);
+    return stable ?? candidates[0] ?? null;
+  };
+
   let releaseData: any;
-  let response = await fetch(latestUrl, { headers: { Accept: "application/vnd.github+json" } });
+  let response = await fetch(latestUrl, { headers: githubHeaders });
 
   if (!response.ok) {
     log(`Latest release endpoint returned ${response.status}. Falling back to full release list…`);
-    response = await fetch(releasesUrl, { headers: { Accept: "application/vnd.github+json" } });
+    response = await fetch(releasesUrl, { headers: githubHeaders });
     if (!response.ok) {
       throw new Error(`Could not fetch releases from GitHub (${response.status}).`);
     }
@@ -186,19 +207,33 @@ async function fetchLatestRoqApk(): Promise<File> {
       throw new Error("No releases found for rookie-on-quest.");
     }
 
-    releaseData = releases[0];
+    releaseData = pickBestReleaseWithApk(releases);
+    if (!releaseData) {
+      throw new Error("No release with an APK asset was found.");
+    }
   } else {
     releaseData = await response.json();
+    if (!findApkAsset(releaseData)) {
+      log("Latest release has no APK asset. Searching all releases…");
+      const releasesResponse = await fetch(releasesUrl, { headers: githubHeaders });
+      if (!releasesResponse.ok) {
+        throw new Error(`Could not fetch releases from GitHub (${releasesResponse.status}).`);
+      }
+
+      const releases = await releasesResponse.json();
+      if (!Array.isArray(releases) || releases.length === 0) {
+        throw new Error("No releases found for rookie-on-quest.");
+      }
+
+      releaseData = pickBestReleaseWithApk(releases);
+      if (!releaseData) {
+        throw new Error("No release with an APK asset was found.");
+      }
+    }
   }
 
   const releaseName = releaseData?.name || releaseData?.tag_name || "Unknown release";
-  const assets = Array.isArray(releaseData?.assets) ? releaseData.assets : [];
-
-  const apkAsset = assets.find((asset: any) =>
-    typeof asset?.name === "string"
-    && asset.name.toLowerCase().endsWith(".apk")
-    && typeof asset?.browser_download_url === "string"
-  );
+  const apkAsset = findApkAsset(releaseData);
 
   if (!apkAsset) {
     throw new Error("Latest release does not contain an APK asset.");
