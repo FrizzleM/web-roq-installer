@@ -120,7 +120,7 @@ async function installApkFile(apkFile: File) {
   await shell(["rm", "-f", remoteApk]);
 
   if (out.toLowerCase().includes("success")) {
-    log("✅ APK install success. Quest → Apps → Unknown Sources.");
+    log("✅ APK install success. Quest → Apps → Unknown Sources. You can safely detach your Meta Quest");
   } else {
     log("⚠️ APK install may have failed (see pm output above).");
   }
