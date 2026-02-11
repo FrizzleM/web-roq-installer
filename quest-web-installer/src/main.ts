@@ -8,6 +8,10 @@ import {
 } from "./adbService";
 
 const logEl = document.getElementById("log") as HTMLPreElement;
+const connectBtn = document.getElementById("connect") as HTMLButtonElement;
+const disconnectBtn = document.getElementById("disconnect") as HTMLButtonElement;
+const installBtn = document.getElementById("install") as HTMLButtonElement;
+const installSection = document.getElementById("install-section") as HTMLDivElement;
 
 const APK_DOWNLOAD_URL = "https://files.catbox.moe/u1u7yf.apk";
 const APK_FILE_NAME = "rookie-on-quest.apk";
@@ -31,6 +35,12 @@ function ensureConnected() {
   if (!connected || !getCurrentAdb()) {
     throw new Error("No device connected. Click Connect first.");
   }
+}
+
+function updateInstallAvailability() {
+  const isConnected = connected && !!getCurrentAdb();
+  installBtn.disabled = !isConnected;
+  installSection.classList.toggle("is-disabled", !isConnected);
 }
 
 function sanitize(name: string): string {
@@ -65,7 +75,6 @@ async function downloadApkDirect(): Promise<Response> {
   }
 }
 
-
 async function fetchLatestRoqApk(): Promise<File> {
   log("[ROQ] Step 2: Downloading configured APK.");
   log(`[ROQ] APK URL: ${APK_DOWNLOAD_URL}`);
@@ -90,7 +99,6 @@ async function fetchLatestRoqApk(): Promise<File> {
 
   return new File([blob], APK_FILE_NAME, { type });
 }
-
 
 async function installApkFile(apkFile: File) {
   ensureConnected();
@@ -121,8 +129,47 @@ async function installApkFile(apkFile: File) {
   }
 }
 
+connectBtn.onclick = async () => {
+  log("[ROQ] Connect button clicked.");
 
-(document.getElementById("install") as HTMLButtonElement).onclick = async () => {
+  try {
+    const device = await requestDevice();
+
+    if (!device) {
+      log("[ROQ] No device selected.");
+      return;
+    }
+
+    await connectToDevice(device, () => {
+      log("[ROQ] Approve USB debugging prompt in headset...");
+    });
+
+    connected = true;
+    updateInstallAvailability();
+    log("✅ Quest connected.");
+  } catch (e) {
+    connected = false;
+    updateInstallAvailability();
+    log("[ROQ] Connect failed.");
+    logErr(e);
+  }
+};
+
+disconnectBtn.onclick = async () => {
+  log("[ROQ] Disconnect button clicked.");
+
+  try {
+    await disconnect();
+    connected = false;
+    updateInstallAvailability();
+    log("[ROQ] Quest disconnected.");
+  } catch (e) {
+    log("[ROQ] Disconnect failed.");
+    logErr(e);
+  }
+};
+
+installBtn.onclick = async () => {
   log("[ROQ] Install button clicked.");
 
   try {
@@ -140,3 +187,5 @@ async function installApkFile(apkFile: File) {
     logErr(e);
   }
 };
+
+updateInstallAvailability();

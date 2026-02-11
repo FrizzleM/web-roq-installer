@@ -35,6 +35,7 @@
     }
     .section{padding:16px;border-bottom:1px solid var(--border)}
     .section:last-child{border-bottom:none}
+    .section.is-disabled .title{color:rgba(255,255,255,.5)}
     .title{font-size:15px;font-weight:700;margin-bottom:0}
     .actions{display:flex;gap:10px;flex-wrap:wrap;margin-top:8px}
     button{
@@ -49,6 +50,12 @@
       transition:background .15s;
     }
     button:hover{background:rgba(255,255,255,.12)}
+    button:disabled{
+      cursor:not-allowed;
+      color:rgba(255,255,255,.55);
+      border-color:rgba(255,255,255,.55);
+    }
+    button:disabled:hover{background:transparent}
 
     pre{
       margin:0;
@@ -87,7 +94,7 @@
         </div>
       </div>
 
-      <div class="section">
+      <div class="section" id="install-section">
         <div class="title">2. Install Rookie-on-Quest</div>
         <div class="actions">
           <button id="install" type="button">Install Rookie-on-Quest</button>
