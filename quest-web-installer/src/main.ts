@@ -11,6 +11,8 @@ const logEl = document.getElementById("log") as HTMLPreElement;
 
 const GITHUB_OWNER = "LeGeRyChEeSe";
 const GITHUB_REPO = "rookie-on-quest";
+// Temporary debug toggle: allows validating Step 2 APK download without a connected headset.
+const DEBUG_ALLOW_APK_DOWNLOAD_WITHOUT_DEVICE = true;
 
 function browserSupportsWebUsb(): boolean {
   return typeof navigator !== "undefined" && "usb" in navigator;
@@ -360,13 +362,21 @@ async function installApkFile(apkFile: File) {
   log("[ROQ] Install button clicked.");
 
   try {
-    log("[ROQ] Verifying ADB connection before install...");
-    ensureConnected();
-    log("[ROQ] Connection check passed.");
-
     log("[ROQ] Fetching latest ROQ APK...");
     const apk = await fetchLatestRoqApk();
     log(`[ROQ] fetchLatestRoqApk completed. name=${apk.name} size=${apk.size}`);
+
+    log("[ROQ] Verifying ADB connection before install...");
+    if (!connected || !getCurrentAdb()) {
+      if (DEBUG_ALLOW_APK_DOWNLOAD_WITHOUT_DEVICE) {
+        log("⚠️ Debug mode: APK download completed without a connected headset. Skipping install step.");
+        return;
+      }
+
+      throw new Error("No device connected. Click Connect first.");
+    }
+
+    log("[ROQ] Connection check passed.");
 
     log("[ROQ] Starting APK install flow (push + pm install)...");
     await installApkFile(apk);
