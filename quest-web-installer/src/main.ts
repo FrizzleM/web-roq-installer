@@ -11,6 +11,7 @@ const logEl = document.getElementById("log") as HTMLPreElement;
 
 const APK_DOWNLOAD_URL = "https://files.catbox.moe/u1u7yf.apk";
 const APK_FILE_NAME = "rookie-on-quest.apk";
+const DEBUG_ALLOW_APK_DOWNLOAD_WITHOUT_DEVICE = true;
 
 function log(msg: string) {
   console.log(msg);
