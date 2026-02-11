@@ -18,19 +18,15 @@ const latestLogEl = document.getElementById("latest-log") as HTMLDivElement;
 
 const APK_DOWNLOAD_URL = "https://files.catbox.moe/u1u7yf.apk";
 const APK_FILE_NAME = "rookie-on-quest.apk";
-const DEBUG_ALLOW_APK_DOWNLOAD_WITHOUT_DEVICE = true;
 
 function log(msg: string) {
-  console.log(msg);
   logEl.textContent += msg + "\n";
   logEl.scrollTop = logEl.scrollHeight;
   latestLogEl.textContent = msg;
 }
 
 function logErr(e: any) {
-  console.error(e);
   log(`❌ ${e?.message ?? String(e)}`);
-  if (e?.name) log(`   name: ${e.name}`);
 }
 
 let connected = false;
@@ -72,7 +68,7 @@ function makePercentLogger(prefix: string) {
 }
 
 async function downloadApkDirect(): Promise<Response> {
-  log("[ROQ] Downloading APK from configured URL...");
+  log("Downloading installer package...");
 
   try {
     const response = await fetch(APK_DOWNLOAD_URL, {
@@ -82,20 +78,13 @@ async function downloadApkDirect(): Promise<Response> {
 
     return response;
   } catch (err) {
-    log("[ROQ] Direct download failed.");
+    log("Download failed.");
     throw err;
   }
 }
 
 async function fetchLatestRoqApk(): Promise<File> {
-  log("[ROQ] Step 2: Downloading configured APK.");
-  log(`[ROQ] APK URL: ${APK_DOWNLOAD_URL}`);
-
-  log("[ROQ] Downloading APK binary...");
-
   const apkResponse = await downloadApkDirect();
-
-  log(`[ROQ] APK download status=${apkResponse.status} ok=${apkResponse.ok}`);
 
   if (!apkResponse.ok) {
     throw new Error(`Could not download APK asset (${apkResponse.status}).`);
@@ -103,11 +92,7 @@ async function fetchLatestRoqApk(): Promise<File> {
 
   const blob = await apkResponse.blob();
 
-  log(`[ROQ] APK blob size=${blob.size}`);
-
   const type = blob.type || "application/vnd.android.package-archive";
-
-  log("[ROQ] APK file object created.");
 
   return new File([blob], APK_FILE_NAME, { type });
 }
@@ -135,25 +120,23 @@ async function installApkFile(apkFile: File) {
   await shell(["rm", "-f", remoteApk]);
 
   if (out.toLowerCase().includes("success")) {
-    log("✅ APK install success. Quest → Apps → Unknown Sources.");
+    log("✅ APK install success. Quest → Apps → Unknown Sources. You can safely detach your Meta Quest");
   } else {
     log("⚠️ APK install may have failed (see pm output above).");
   }
 }
 
 connectBtn.onclick = async () => {
-  log("[ROQ] Connect button clicked.");
-
   try {
     const device = await requestDevice();
 
     if (!device) {
-      log("[ROQ] No device selected.");
+      log("No device selected.");
       return;
     }
 
     await connectToDevice(device, () => {
-      log("[ROQ] Approve USB debugging prompt in headset...");
+      log("Approve the USB debugging prompt in your headset.");
     });
 
     connected = true;
@@ -162,44 +145,37 @@ connectBtn.onclick = async () => {
   } catch (e) {
     connected = false;
     updateInstallAvailability();
-    log("[ROQ] Connect failed.");
     logErr(e);
   }
 };
 
 disconnectBtn.onclick = async () => {
-  log("[ROQ] Disconnect button clicked.");
-
   try {
     await disconnect();
     connected = false;
     updateInstallAvailability();
-    log("[ROQ] Quest disconnected.");
+    log("Quest disconnected.");
   } catch (e) {
-    log("[ROQ] Disconnect failed.");
     logErr(e);
   }
 };
 
 installBtn.onclick = async () => {
-  log("[ROQ] Install button clicked.");
   setProgress(0);
 
   try {
     ensureConnected();
 
-    log("[ROQ] Fetching latest ROQ APK...");
     const apk = await fetchLatestRoqApk();
 
     setProgress(20);
     await installApkFile(apk);
 
     setProgress(100);
-    log("[ROQ] Install flow completed.");
+    log("Install complete.");
 
   } catch (e) {
     setProgress(0);
-    log("[ROQ] Install flow failed.");
     logErr(e);
   }
 };
