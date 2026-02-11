@@ -25,6 +25,17 @@
       padding:24px 16px;
     }
     .wrap{width:min(980px,100%)}
+    .app-shell{
+      width:100%;
+      display:flex;
+      justify-content:center;
+      position:relative;
+    }
+    .app-shell.is-blocked .wrap{
+      filter:blur(8px);
+      pointer-events:none;
+      user-select:none;
+    }
     h1{margin:0 0 8px;font-size:28px;font-weight:600;letter-spacing:.03em}
     .sub{color:var(--muted);font-size:14px;margin-bottom:16px;line-height:1.35}
 
@@ -116,47 +127,88 @@
       color:var(--text);
       user-select:none;
     }
+
+    .unsupported-modal{
+      position:fixed;
+      inset:0;
+      display:none;
+      align-items:center;
+      justify-content:center;
+      padding:24px;
+      background:rgba(0,0,0,.55);
+      z-index:20;
+    }
+    .unsupported-modal.is-visible{display:flex}
+    .unsupported-modal__card{
+      width:min(560px,100%);
+      border:1px solid var(--border);
+      background:#000;
+      padding:20px;
+    }
+    .unsupported-modal__title{
+      margin:0 0 10px;
+      font-size:20px;
+      font-weight:700;
+      letter-spacing:.03em;
+    }
+    .unsupported-modal__text{
+      margin:0;
+      color:var(--muted);
+      line-height:1.45;
+      font-size:14px;
+    }
   </style>
 </head>
 
 <body>
-  <div class="wrap">
-    <h1>Install Rookie-on-Quest</h1>
-    <div class="sub">
-      Connect your Meta Quest, then install the latest Rookie-on-Quest release APK. Developer mode is required.
+  <div class="app-shell" id="app-shell">
+    <div class="wrap">
+      <h1>Install Rookie-on-Quest</h1>
+      <div class="sub">
+        Connect your Meta Quest, then install the latest Rookie-on-Quest release APK. Developer mode is required.
+      </div>
+
+      <div class="card">
+
+        <div class="section">
+          <div class="title">1. Connect your Quest</div>
+          <div class="actions">
+            <button id="connect" type="button">Connect Quest</button>
+            <button id="disconnect" type="button">Disconnect</button>
+          </div>
+        </div>
+
+        <div class="section is-disabled" id="install-section" aria-disabled="true">
+          <div class="title">2. Install Rookie-on-Quest</div>
+          <div class="actions">
+            <button id="install" type="button">Install Rookie-on-Quest</button>
+          </div>
+        </div>
+
+        <div class="progress-wrap">
+          <div class="progress-header">
+            <span>Progress</span>
+            <span id="progress-label">0%</span>
+          </div>
+          <progress id="progress" max="100" value="0"></progress>
+          <div id="latest-log" class="latest-log">Waiting for action...</div>
+        </div>
+
+        <details open>
+          <summary>Logs</summary>
+          <pre id="log"></pre>
+        </details>
+
+      </div>
     </div>
 
-    <div class="card">
-
-      <div class="section">
-        <div class="title">1. Connect your Quest</div>
-        <div class="actions">
-          <button id="connect" type="button">Connect Quest</button>
-          <button id="disconnect" type="button">Disconnect</button>
-        </div>
+    <div id="unsupported-modal" class="unsupported-modal" role="alertdialog" aria-modal="true" aria-labelledby="unsupported-title" aria-describedby="unsupported-text">
+      <div class="unsupported-modal__card">
+        <h2 id="unsupported-title" class="unsupported-modal__title">Unsupported browser</h2>
+        <p id="unsupported-text" class="unsupported-modal__text">
+          This installer requires a Chromium-based browser with WebUSB enabled (Google Chrome, Microsoft Edge, or Opera) in a secure context (HTTPS). Please switch browsers to continue.
+        </p>
       </div>
-
-      <div class="section is-disabled" id="install-section" aria-disabled="true">
-        <div class="title">2. Install Rookie-on-Quest</div>
-        <div class="actions">
-          <button id="install" type="button">Install Rookie-on-Quest</button>
-        </div>
-      </div>
-
-      <div class="progress-wrap">
-        <div class="progress-header">
-          <span>Progress</span>
-          <span id="progress-label">0%</span>
-        </div>
-        <progress id="progress" max="100" value="0"></progress>
-        <div id="latest-log" class="latest-log">Waiting for action...</div>
-      </div>
-
-      <details open>
-        <summary>Logs</summary>
-        <pre id="log"></pre>
-      </details>
-
     </div>
 
     <script type="module" src="/src/main.ts"></script>

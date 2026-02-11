@@ -15,9 +15,12 @@ const installSection = document.getElementById("install-section") as HTMLDivElem
 const progressEl = document.getElementById("progress") as HTMLProgressElement;
 const progressLabelEl = document.getElementById("progress-label") as HTMLSpanElement;
 const latestLogEl = document.getElementById("latest-log") as HTMLDivElement;
+const appShellEl = document.getElementById("app-shell") as HTMLDivElement;
+const unsupportedModalEl = document.getElementById("unsupported-modal") as HTMLDivElement;
 
 const APK_DOWNLOAD_URL = "https://files.catbox.moe/u1u7yf.apk";
 const APK_FILE_NAME = "rookie-on-quest.apk";
+const isSupportedBrowser = window.isSecureContext && "usb" in navigator;
 
 function log(msg: string) {
   logEl.textContent += msg + "\n";
@@ -38,10 +41,31 @@ function ensureConnected() {
 }
 
 function updateInstallAvailability() {
+  if (!isSupportedBrowser) {
+    installBtn.disabled = true;
+    installSection.classList.add("is-disabled");
+    installSection.setAttribute("aria-disabled", "true");
+    return;
+  }
+
   const isConnected = connected && !!getCurrentAdb();
   installBtn.disabled = !isConnected;
   installSection.classList.toggle("is-disabled", !isConnected);
   installSection.setAttribute("aria-disabled", String(!isConnected));
+}
+
+function applyBrowserSupportBlock() {
+  if (isSupportedBrowser) {
+    appShellEl.classList.remove("is-blocked");
+    unsupportedModalEl.classList.remove("is-visible");
+    return;
+  }
+
+  connectBtn.disabled = true;
+  disconnectBtn.disabled = true;
+  installBtn.disabled = true;
+  appShellEl.classList.add("is-blocked");
+  unsupportedModalEl.classList.add("is-visible");
 }
 
 function setProgress(percent: number) {
@@ -127,6 +151,8 @@ async function installApkFile(apkFile: File) {
 }
 
 connectBtn.onclick = async () => {
+  if (!isSupportedBrowser) return;
+
   try {
     const device = await requestDevice();
 
@@ -150,6 +176,8 @@ connectBtn.onclick = async () => {
 };
 
 disconnectBtn.onclick = async () => {
+  if (!isSupportedBrowser) return;
+
   try {
     await disconnect();
     connected = false;
@@ -161,6 +189,8 @@ disconnectBtn.onclick = async () => {
 };
 
 installBtn.onclick = async () => {
+  if (!isSupportedBrowser) return;
+
   setProgress(0);
 
   try {
@@ -180,5 +210,6 @@ installBtn.onclick = async () => {
   }
 };
 
+applyBrowserSupportBlock();
 updateInstallAvailability();
 setProgress(0);
